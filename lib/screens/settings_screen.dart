@@ -286,8 +286,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: Image.network(
-              'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&q=80',
+            child: Image.asset(
+              'assets/images/avatar.png',
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white54, size: 20),
             ),

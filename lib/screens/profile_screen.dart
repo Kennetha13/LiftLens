@@ -81,8 +81,8 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(18),
-                      child: Image.network(
-                        'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=200&q=80',
+                      child: Image.asset(
+                        'assets/images/avatar.png',
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white54, size: 40),
                       ),
@@ -395,7 +395,7 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildRecentHistory() {
     final history = [
       {
-        'imageUrl': 'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=100&q=80',
+        'imageUrl': 'assets/images/squat.png',
         'title': 'Back Squat',
         'subtitle': 'Today · 3 issues found',
         'score': 85,
@@ -403,7 +403,7 @@ class ProfileScreen extends StatelessWidget {
         'scoreBg': const Color(0x26C8F53A),
       },
       {
-        'imageUrl': 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=100&q=80',
+        'imageUrl': 'assets/images/bench.png',
         'title': 'Bench Press',
         'subtitle': 'Yesterday · 1 issue found',
         'score': 91,
@@ -411,7 +411,7 @@ class ProfileScreen extends StatelessWidget {
         'scoreBg': const Color(0x26C8F53A),
       },
       {
-        'imageUrl': 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=100&q=80',
+        'imageUrl': 'assets/images/deadlift.png',
         'title': 'Deadlift',
         'subtitle': '3 days ago · 2 issues found',
         'score': 72,
@@ -457,7 +457,7 @@ class ProfileScreen extends StatelessWidget {
                         child: SizedBox(
                           width: 40,
                           height: 40,
-                          child: Image.network(
+                          child: Image.asset(
                             h['imageUrl'] as String,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(

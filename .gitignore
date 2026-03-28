@@ -43,7 +43,9 @@ ios/Flutter/flutter_export_environment.sh
 .idea/assetWizardSettings.xml
 .idea/deploymentTargetSelector.xml
 .idea/deviceManager.xml
+.idea/runConfigurations/
 .idea/runConfigurations.xml
+.idea/vcs.xml
 *.iml
 
 # ─── IDE: VS Code ──────────────────────────────────────────────────────────────

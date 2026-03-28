@@ -76,8 +76,8 @@ class HomeScreen extends StatelessWidget {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
-                      child: Image.network(
-                        'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&q=80',
+                      child: Image.asset(
+                        'assets/images/avatar.png',
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => const Icon(Icons.person, color: Colors.white54),
                       ),
@@ -341,8 +341,7 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _buildAnalysisCard(
-            imageUrl:
-                'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=500&q=80',
+            imageUrl: 'assets/images/squat.png',
             tag: 'Squat',
             title: 'Back Squat',
             score: 85,
@@ -355,8 +354,7 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildAnalysisCard(
-            imageUrl:
-                'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=500&q=80',
+            imageUrl: 'assets/images/bench.png',
             tag: 'Bench Press',
             title: 'Flat Bench Press',
             score: 91,
@@ -369,8 +367,7 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildAnalysisCard(
-            imageUrl:
-                'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&q=80',
+            imageUrl: 'assets/images/deadlift.png',
             tag: 'Deadlift',
             title: 'Conventional Deadlift',
             score: 72,
@@ -409,7 +406,7 @@ class HomeScreen extends StatelessWidget {
                 SizedBox(
                   height: 144,
                   width: double.infinity,
-                  child: Image.network(
+                  child: Image.asset(
                     imageUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
