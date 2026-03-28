@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'config.dart';
 import 'theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/upload_screen.dart';
@@ -15,7 +16,56 @@ void main() {
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
   ));
+  if (apiKey.isEmpty) {
+    runApp(const _MissingApiKeyApp());
+    return;
+  }
   runApp(const LiftLensApp());
+}
+
+class _MissingApiKeyApp extends StatelessWidget {
+  const _MissingApiKeyApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.key_off_rounded,
+                    color: Colors.white38, size: 64),
+                const SizedBox(height: 24),
+                const Text(
+                  'API Key Missing',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Run the app with your Gemini API key:\n\n'
+                  'flutter run \\\n  --dart-define=GEMINI_API_KEY=your_key\n\n'
+                  'Get a free key at:\naistudio.google.com/apikey',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.5),
+                      fontSize: 13,
+                      height: 1.6),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class LiftLensApp extends StatelessWidget {
@@ -105,9 +155,12 @@ class _MainShellState extends State<MainShell> {
             // Main content — Positioned.fill gives it bounded height so
             // SingleChildScrollView inside each screen can actually scroll.
             Positioned.fill(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 80),
-                child: _currentPage,
+              child: Material(
+                type: MaterialType.transparency,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 80),
+                  child: _currentPage,
+                ),
               ),
             ),
 

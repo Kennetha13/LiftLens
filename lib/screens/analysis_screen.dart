@@ -1,527 +1,535 @@
 import 'package:flutter/material.dart';
+import '../models/analysis_result.dart';
 import '../theme.dart';
 import '../widgets/status_bar.dart';
 
-class AnalysisScreen extends StatelessWidget {
-  const AnalysisScreen({super.key});
+class AnalysisScreen extends StatefulWidget {
+  const AnalysisScreen({super.key, this.result});
+
+  /// When non-null, renders real Gemini output. When null, shows demo data.
+  final AnalysisResult? result;
+
+  @override
+  State<AnalysisScreen> createState() => _AnalysisScreenState();
+}
+
+class _AnalysisScreenState extends State<AnalysisScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  // ── Demo / fallback data ────────────────────────────────────────────────────
+  static const _demoExercise = 'Back Squat';
+  static const _demoScore = 85;
+  static const _demoSummary =
+      'Good overall depth and tempo. Two key issues detected that need attention — '
+      'knee valgus and forward lean — both correctable with targeted accessory work.';
+  static final _demoMetrics = [
+    FormMetric(name: 'Depth', score: 92, feedback: 'Hip crease breaks parallel consistently.'),
+    FormMetric(name: 'Bar Path', score: 88, feedback: 'Minimal horizontal deviation.'),
+    FormMetric(name: 'Knee Tracking', score: 58, feedback: 'Inward collapse visible at descent.'),
+    FormMetric(name: 'Spine Neutral', score: 74, feedback: 'Slight forward lean at depth.'),
+    FormMetric(name: 'Tempo', score: 90, feedback: 'Controlled eccentric, strong concentric.'),
+  ];
+  static final _demoIssues = [
+    FormIssue(
+      title: 'Knee Valgus Collapse',
+      severity: IssueSeverity.critical,
+      description:
+          'Both knees cave inward during descent, particularly visible at 0:12 and 0:31. '
+          'This increases ACL and meniscus stress.',
+      fix: '💡 FIX: Cue "push knees out" and add band walks to activate glute med. Consider widening stance 5–10°.',
+    ),
+    FormIssue(
+      title: 'Forward Lean',
+      severity: IssueSeverity.moderate,
+      description:
+          'Torso angle exceeds 45° forward during descent, shifting load to lower back. '
+          'May indicate ankle mobility restrictions.',
+      fix: '💡 FIX: Add heel elevation or work on ankle dorsiflexion. Box squats can help reset posture.',
+    ),
+    FormIssue(
+      title: 'Great Depth',
+      severity: IssueSeverity.good,
+      description:
+          'Hip crease consistently breaks parallel. Excellent range of motion maintained throughout all reps.',
+      fix: null,
+    ),
+  ];
+  static const _demoStrengths = [
+    'Consistent depth across all reps',
+    'Good bracing and breath control',
+    'Bar path stays vertical',
+  ];
+  // ───────────────────────────────────────────────────────────────────────────
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final r = widget.result;
+    final exerciseName = r?.exerciseName ?? _demoExercise;
+    final formScore = r?.formScore ?? _demoScore;
+    final summary = r?.overallSummary ?? _demoSummary;
+    final metrics = r?.metrics ?? _demoMetrics;
+    final issues = r?.issues ?? _demoIssues;
+    final strengths = r?.strengths ?? _demoStrengths;
+
     return Column(
       children: [
         const AppStatusBar(),
+        _buildHero(context, exerciseName, formScore, widget.result != null),
+        _buildTabBar(),
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildVideoPreview(),
-                const SizedBox(height: 16),
-                _buildScoreSection(),
-                const SizedBox(height: 16),
-                _buildFormBreakdown(),
-                const SizedBox(height: 16),
-                _buildIssuesDetected(),
-                const SizedBox(height: 16),
-                _buildVeoCTA(),
-                const SizedBox(height: 8),
-              ],
-            ),
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildOverviewTab(summary, strengths),
+              _buildMetricsTab(metrics),
+              _buildIssuesTab(issues),
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildVideoPreview() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: SizedBox(
-              height: 200,
-              width: double.infinity,
-              child: Image.network(
-                'https://images.unsplash.com/photo-1566241440091-ec10de8db2e1?w=700&q=80',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: Colors.grey.shade900,
-                  child: const Icon(Icons.fitness_center, color: Colors.white24, size: 40),
-                ),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.black.withOpacity(0.35),
-                ),
-                child: Center(
-                  child: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: Colors.white.withOpacity(0.3), width: 2),
-                    ),
-                    child: const Icon(Icons.play_arrow_rounded,
-                        color: Colors.white, size: 28),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 12,
-            left: 12,
-            child: Row(
-              children: [
-                _buildTimestampPill('⚠ 0:12', Colors.red.shade400),
-                const SizedBox(width: 6),
-                _buildTimestampPill('⚠ 0:31', Colors.red.shade400),
-                const SizedBox(width: 6),
-                _buildTimestampPill('✓ 0:45', AppColors.accent),
-              ],
-            ),
-          ),
-          Positioned(
-            bottom: 12,
-            right: 12,
-            child: _buildTimestampPill('00:48', Colors.white),
-          ),
-          Positioned(
-            top: 12,
-            left: 12,
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.chevron_left_rounded,
-                  color: Colors.white, size: 18),
-            ),
-          ),
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.share_rounded,
-                  color: Colors.white, size: 16),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimestampPill(String text, Color color) {
+  Widget _buildHero(
+      BuildContext context, String exerciseName, int formScore, bool isReal) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(text,
-          style: TextStyle(
-              color: color, fontSize: 10, fontWeight: FontWeight.w700)),
-    );
-  }
-
-  Widget _buildScoreSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Text('Back Squat',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 20)),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0x26C8F53A),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text('Intermediate',
-                          style: TextStyle(
-                              color: AppColors.accent,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFF6366F1).withOpacity(0.2),
-                        const Color(0xFFA855F7).withOpacity(0.2),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: const Color(0xFF6366F1).withOpacity(0.3)),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.auto_fix_high_rounded,
-                          color: AppColors.purple, size: 13),
-                      SizedBox(width: 6),
-                      Text('Analyzed by Gemini',
-                          style: TextStyle(
-                              color: AppColors.purple,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            width: 64,
-            height: 64,
-            child: CustomPaint(
-              painter: _ScoreRingPainter(0.85),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('85',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 18,
-                            height: 1.0)),
-                    Text('FORM',
-                        style: TextStyle(
-                            color: Colors.white38,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFormBreakdown() {
-    final metrics = [
-      {'label': 'Depth', 'value': 0.92, 'text': '92%', 'color': AppColors.accent},
-      {'label': 'Bar Path', 'value': 0.88, 'text': '88%', 'color': AppColors.accent},
-      {'label': 'Knee Tracking', 'value': 0.58, 'text': '58%', 'color': AppColors.red},
-      {'label': 'Spine Neutral', 'value': 0.74, 'text': '74%', 'color': AppColors.orange},
-      {'label': 'Tempo', 'value': 0.90, 'text': '90%', 'color': AppColors.accent},
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: AppDecorations.glassCard,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('FORM BREAKDOWN', style: AppTextStyles.sectionLabel),
-            const SizedBox(height: 12),
-            ...metrics.map((m) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(m['label'] as String,
-                              style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500)),
-                          Text(m['text'] as String,
-                              style: TextStyle(
-                                  color: m['color'] as Color,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700)),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: m['value'] as double,
-                          backgroundColor: Colors.white.withOpacity(0.1),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                              m['color'] as Color),
-                          minHeight: 6,
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
-          ],
+        color: AppColors.background,
+        border: Border(
+          bottom: BorderSide(color: Colors.white.withOpacity(0.05)),
         ),
       ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (isReal)
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: AppDecorations.glass,
+                    child: const Icon(Icons.arrow_back_rounded,
+                        color: Colors.white, size: 20),
+                  ),
+                )
+              else
+                const SizedBox(width: 36),
+              Column(
+                children: [
+                  Text(exerciseName.toUpperCase(),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                          fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.auto_fix_high_rounded,
+                          color: AppColors.purple, size: 12),
+                      const SizedBox(width: 6),
+                      Text('AI GENERATED ANALYSIS',
+                          style: TextStyle(
+                              color: Colors.white.withOpacity(0.4),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5)),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(width: 36),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 140,
+                height: 140,
+                child: CustomPaint(
+                  painter: _ScoreRingPainter(
+                    progress: formScore / 100,
+                    color: _getScoreColor(formScore),
+                  ),
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('$formScore%',
+                      style: TextStyle(
+                          color: _getScoreColor(formScore),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 32,
+                          letterSpacing: -1)),
+                  Text('FORM SCORE',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.35),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.0)),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildIssuesDetected() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+  Color _getScoreColor(int score) {
+    if (score >= 80) return AppColors.accent;
+    if (score >= 60) return AppColors.orange;
+    return AppColors.red;
+  }
+
+  Widget _buildTabBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      height: 44,
+      decoration: BoxDecoration(
+        color: const Color(0x1AFFFFFF),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        dividerColor: Colors.transparent,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: BoxDecoration(
+          color: AppColors.accent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        labelColor: const Color(0xFF0D0D14),
+        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+        unselectedLabelColor: Colors.white.withOpacity(0.5),
+        tabs: const [
+          Tab(text: 'OVERVIEW'),
+          Tab(text: 'METRICS'),
+          Tab(text: 'ISSUES'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewTab(String summary, List<String> strengths) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('ISSUES DETECTED', style: AppTextStyles.sectionLabel),
+          const Text('COACH\'S SUMMARY',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5)),
           const SizedBox(height: 12),
-          _buildIssueCard(
-            icon: Icons.warning_amber_rounded,
-            iconBg: const Color(0x26FF4B4B),
-            iconColor: AppColors.red,
-            borderColor: const Color(0x26FF4B4B),
-            bgColor: const Color(0x0FFF4B4B),
-            title: 'Knee Valgus Collapse',
-            tagText: 'Critical',
-            tagColor: AppColors.red,
-            tagBg: const Color(0x26FF4B4B),
-            description:
-                'Both knees cave inward during descent, particularly visible at 0:12 and 0:31. This increases ACL and meniscus stress.',
-            fix: '💡 FIX: Cue "push knees out" and add band walks to activate glute med. Consider widening stance 5–10°.',
-          ),
-          const SizedBox(height: 10),
-          _buildIssueCard(
-            icon: Icons.priority_high_rounded,
-            iconBg: const Color(0x26FF9A3C),
-            iconColor: AppColors.orange,
-            borderColor: const Color(0x26FF9A3C),
-            bgColor: const Color(0x0FFF9A3C),
-            title: 'Forward Lean',
-            tagText: 'Moderate',
-            tagColor: AppColors.orange,
-            tagBg: const Color(0x26FF9A3C),
-            description:
-                'Torso angle exceeds 45° forward during descent, shifting load to lower back. May indicate ankle mobility restrictions.',
-            fix: '💡 FIX: Add heel elevation or work on ankle dorsiflexion. Box squats can help you reset posture.',
-          ),
-          const SizedBox(height: 10),
-          _buildIssueCard(
-            icon: Icons.check_rounded,
-            iconBg: const Color(0x26C8F53A),
-            iconColor: AppColors.accent,
-            borderColor: const Color(0x26C8F53A),
-            bgColor: const Color(0x0FC8F53A),
-            title: 'Great Depth',
-            tagText: 'Excellent',
-            tagColor: AppColors.accent,
-            tagBg: const Color(0x26C8F53A),
-            description:
-                'Hip crease consistently breaks parallel. Excellent range of motion maintained throughout all reps. Keep it up!',
-            fix: null,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIssueCard({
-    required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
-    required Color borderColor,
-    required Color bgColor,
-    required String title,
-    required String tagText,
-    required Color tagColor,
-    required Color tagBg,
-    required String description,
-    String? fix,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
           Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(10),
+            padding: const EdgeInsets.all(16),
+            decoration: AppDecorations.glassCard,
+            child: Text(
+              summary,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 13,
+                height: 1.6,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-            child: Icon(icon, color: iconColor, size: 15),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          const SizedBox(height: 24),
+          const Text('KEY STRENGTHS',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5)),
+          const SizedBox(height: 12),
+          ...strengths.map((s) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0x0DC8F53A),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
                   children: [
-                    Text(title,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13)),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: tagBg,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(tagText,
-                          style: TextStyle(
-                              color: tagColor,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700)),
+                    const Icon(Icons.check_circle_rounded,
+                        color: AppColors.accent, size: 16),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(s,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600)),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(description,
-                    style: TextStyle(
-                        color: Colors.white.withOpacity(0.55),
-                        fontSize: 11,
-                        height: 1.5)),
-                if (fix != null) ...[
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(fix,
-                        style: const TextStyle(
-                            color: AppColors.accent,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700)),
-                  ),
-                ],
-              ],
-            ),
-          ),
+              )),
+          if (widget.result == null) ...[
+            const SizedBox(height: 24),
+            _buildVeoCTA(),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildVeoCTA() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1A0E2E), Color(0xFF0F1A3A)],
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Padding(
+  Widget _buildMetricsTab(List<FormMetric> metrics) {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      itemCount: metrics.length,
+      itemBuilder: (context, index) {
+        final m = metrics[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
+          decoration: AppDecorations.glassCard,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.movie_rounded,
-                        color: Colors.white, size: 14),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text('VEO AI VIDEO',
+                  Text(m.name,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800)),
+                  Text('${m.score}%',
                       style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5)),
+                          color: _getScoreColor(m.score),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900)),
                 ],
               ),
-              const SizedBox(height: 12),
-              const Text('See Your Ideal Form',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15)),
-              const SizedBox(height: 4),
-              Text(
-                  'Watch a personalized AI-generated video showing exactly how to fix your squat form.',
-                  style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
-                      fontSize: 11,
-                      height: 1.5)),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 18), // Increased spacing to prevent 'underlining' look
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LinearProgressIndicator(
+                  value: m.score / 100,
+                  backgroundColor: Colors.white.withOpacity(0.05),
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(_getScoreColor(m.score)),
+                  minHeight: 8, // Thicker bar to look like data, not an underline
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              ),
+              if (m.feedback.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Text(m.feedback,
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.45),
+                        fontSize: 11,
+                        height: 1.5, // Better line spacing
+                        fontWeight: FontWeight.w500)),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildIssuesTab(List<FormIssue> issues) {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      itemCount: issues.length,
+      itemBuilder: (context, index) {
+        final issue = issues[index];
+        IconData icon;
+        Color color;
+        String tag;
+
+        switch (issue.severity) {
+          case IssueSeverity.critical:
+            icon = Icons.warning_rounded;
+            color = AppColors.red;
+            tag = 'CRITICAL';
+            break;
+          case IssueSeverity.moderate:
+            icon = Icons.error_outline_rounded;
+            color = AppColors.orange;
+            tag = 'MODERATE';
+            break;
+          case IssueSeverity.good:
+            icon = Icons.check_circle_outline_rounded;
+            color = AppColors.accent;
+            tag = 'OPTIMAL';
+            break;
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withOpacity(0.15)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 16),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.play_arrow_rounded,
-                        color: Colors.white, size: 16),
-                    SizedBox(width: 6),
-                    Text('View Improvement Video',
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Text(issue.title,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(tag,
+                              style: TextStyle(
+                                  color: color,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(issue.description,
                         style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13)),
+                            color: Colors.white.withOpacity(0.55),
+                            fontSize: 11,
+                            height: 1.6, // Better spacing
+                            fontWeight: FontWeight.w500)),
+                    if (issue.fix != null) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(issue.fix!,
+                            style: const TextStyle(
+                                color: AppColors.accent,
+                                fontSize: 10,
+                                height: 1.6,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildVeoCTA() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF6366F1).withOpacity(0.15),
+            const Color(0xFFA855F7).withOpacity(0.15),
+          ],
         ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.purple,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.videocam_rounded,
+                    color: Colors.white, size: 14),
+              ),
+              const SizedBox(width: 10),
+              const Text('VEO AI RECONSTRUCTION',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Visualize your improvement with a personalized AI form reconstruction.',
+            style: TextStyle(
+                color: Colors.white.withOpacity(0.5),
+                fontSize: 11,
+                height: 1.5),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.play_arrow_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Text('Generate Fix Video',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -529,31 +537,51 @@ class AnalysisScreen extends StatelessWidget {
 
 class _ScoreRingPainter extends CustomPainter {
   final double progress;
-  _ScoreRingPainter(this.progress);
+  final Color color;
+  _ScoreRingPainter({required this.progress, required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 4;
-    const strokeWidth = 8.0;
+    final radius = size.width / 2 - 6;
+    const strokeWidth = 12.0;
+
     final bgPaint = Paint()
-      ..color = Colors.white.withOpacity(0.08)
+      ..color = Colors.white.withOpacity(0.05)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
     canvas.drawCircle(center, radius, bgPaint);
+
     final fgPaint = Paint()
-      ..color = AppColors.accent
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
+
     canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -1.5707963,
-        2 * 3.14159265 * progress,
-        false,
-        fgPaint);
+      Rect.fromCircle(center: center, radius: radius),
+      -1.5707963,
+      2 * 3.14159265 * progress,
+      false,
+      fgPaint,
+    );
+
+    // Subtle glow
+    final glowPaint = Paint()
+      ..color = color.withOpacity(0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth + 4
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -1.5707963,
+      2 * 3.14159265 * progress,
+      false,
+      glowPaint,
+    );
   }
 
   @override
-  bool shouldRepaint(_ScoreRingPainter old) => old.progress != progress;
+  bool shouldRepaint(_ScoreRingPainter old) =>
+      old.progress != progress || old.color != color;
 }
