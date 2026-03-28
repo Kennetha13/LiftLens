@@ -124,4 +124,4 @@ lib/
 
 ## License
 
-MIT — built with ❤️ for the Google Gemini Hackathon.
+MIT — built with ❤️ for the Google Gemini Hackathon. YAY
