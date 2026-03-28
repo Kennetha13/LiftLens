@@ -10,3 +10,6 @@ const String apiKey = String.fromEnvironment(
 /// Gemini model for video analysis.
 /// Gemini model for video analysis.
 const String geminiModel = 'models/gemini-3-flash-preview';
+
+/// Veo 3 Fast model — faster generation & lower cost than the standard model.
+const String veoModel = 'veo-3.1-fast-generate-preview';
