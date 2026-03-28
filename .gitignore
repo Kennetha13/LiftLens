@@ -1,15 +1,70 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# ─── Dart / Flutter build artifacts ───────────────────────────────────────────
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+
+# ─── Flutter-generated files ───────────────────────────────────────────────────
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# ─── Pub ───────────────────────────────────────────────────────────────────────
+# Uncomment the next line if you publish a library package; keep it for apps.
+# pubspec.lock
+
+# ─── Local / machine-specific config ──────────────────────────────────────────
+# Contains your local SDK path — NEVER commit
 local.properties
+android/local.properties
+
+# ─── Android ───────────────────────────────────────────────────────────────────
+*.iml
+.gradle/
+.externalNativeBuild/
+.cxx/
+/captures/
+android/.gradle/
+android/.kotlin/
+
+# ─── iOS / macOS ───────────────────────────────────────────────────────────────
+ios/Pods/
+macos/Pods/
+ios/.symlinks/
+ios/Flutter/flutter_export_environment.sh
+*.xcworkspace/xcuserdata/
+
+# ─── IDE: Android Studio / IntelliJ ────────────────────────────────────────────
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/deploymentTargetSelector.xml
+.idea/deviceManager.xml
+.idea/runConfigurations.xml
+*.iml
+
+# ─── IDE: VS Code ──────────────────────────────────────────────────────────────
+.vscode/
+
+# ─── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+
+# ─── Secrets & environment files ───────────────────────────────────────────────
+# The Gemini API key is passed via --dart-define=GEMINI_API_KEY=... at runtime.
+# Never create a .env file with real keys and commit it.
+.env
+.env.*
+*.env
+secrets.dart
+google-services.json
+GoogleService-Info.plist
+
+# ─── Keystore / signing ────────────────────────────────────────────────────────
+*.jks
+*.keystore
+key.properties
+android/key.properties
