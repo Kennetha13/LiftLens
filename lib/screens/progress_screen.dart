@@ -1,4 +1,7 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
+import '../services/veo_service.dart';
 import '../theme.dart';
 import '../widgets/status_bar.dart';
 
@@ -14,6 +17,54 @@ class _ProgressScreenState extends State<ProgressScreen> {
   final List<String> _periods = ['1W', '1M', '3M', '6M', '1Y'];
   final List<double> _chartData = [0.45, 0.50, 0.55, 0.62, 0.60, 0.70, 0.75, 0.80, 0.78, 0.85];
 
+  final TextEditingController _promptController = TextEditingController();
+  final VeoService _veoService = VeoService();
+  VideoPlayerController? _videoController;
+  bool _isGenerating = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _promptController.dispose();
+    _videoController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _generateVideo() async {
+    if (_promptController.text.isEmpty) return;
+
+    setState(() {
+      _isGenerating = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final operationName = await _veoService.generateVideo(_promptController.text);
+      final videoUrl = await _veoService.pollOperation(operationName);
+
+      if (videoUrl != null) {
+        final controller = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
+        await controller.initialize();
+        setState(() {
+          _videoController = controller;
+          _videoController!.play();
+          _videoController!.setLooping(true);
+          _isGenerating = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = "No video URL returned";
+          _isGenerating = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isGenerating = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -27,6 +78,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
               children: [
                 _buildHeader(),
                 const SizedBox(height: 16),
+                _buildVeoTestingSection(),
+                const SizedBox(height: 20),
                 _buildPeriodSelector(),
                 const SizedBox(height: 16),
                 _buildScoreChart(),
@@ -446,6 +499,103 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 ),
               )),
         ],
+      ),
+    );
+  }
+  Widget _buildVeoTestingSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: AppDecorations.glassCard.copyWith(
+          border: Border.all(color: AppColors.purple.withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.purple.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.auto_awesome_rounded, color: AppColors.purple, size: 16),
+                ),
+                const SizedBox(width: 10),
+                const Text('AI VIDEO LAB (VEO 3)',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                        letterSpacing: 0.5)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _promptController,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'Describe a perfect exercise form...',
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.05),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                suffixIcon: IconButton(
+                  icon: _isGenerating 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent)) 
+                    : const Icon(Icons.send_rounded, color: AppColors.accent, size: 20),
+                  onPressed: _isGenerating ? null : _generateVideo,
+                ),
+              ),
+              maxLines: 2,
+            ),
+            if (_errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(_errorMessage!,
+                    style: const TextStyle(color: Colors.redAccent, fontSize: 11)),
+              ),
+            if (_videoController != null || _isGenerating)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    color: Colors.black,
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: _isGenerating
+                        ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+                        : Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              VideoPlayer(_videoController!),
+                              IconButton(
+                                icon: Icon(
+                                  _videoController!.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                                  color: Colors.white.withOpacity(0.7),
+                                  size: 48,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _videoController!.value.isPlaying ? _videoController!.pause() : _videoController!.play();
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
