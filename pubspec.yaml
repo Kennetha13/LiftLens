@@ -35,6 +35,12 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  # Gemini Files API — direct REST calls (same approach as test_gemini project)
+  http: ^1.2.0
+
+  # Native file picker for video selection on iOS/Android/macOS
+  file_picker: ^8.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
